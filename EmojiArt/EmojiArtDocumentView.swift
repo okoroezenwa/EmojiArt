@@ -14,11 +14,13 @@ struct EmojiArtDocumentView: View {
     @ObservedObject var document: EmojiArtDocument
     @State private var zoom: CGFloat = 1
     @State private var pan: CGOffset = .zero
+    @StateObject var paletteStore = PaletteStore(named: "Shared")
     @GestureState private var gestureZoom: CGFloat = 1
     @GestureState private var gesturePan: CGOffset = .zero
     @State private var showBackgroundFailureAlert = false
+    @ScaledMetric private var paletteEmojiSize: CGFloat = 40
+    @Environment(\.undoManager) var undoManager
     private let emojis = "👻🍎😃🤪☹️🤯🐶🐭🦁🐵🦆🐝🐢🐄🐖🌲🌴🌵🍄🌞🌎🔥🌈🌧️🌨️☁️⛄️⛳️🚗🚙🚓🚲🛺🏍️🚘✈️🛩️🚀🚁🏰🏠❤️💤⛵️"
-    private let paletteEmojiSize: CGFloat = 40
     
     var body: some View {
         VStack {
@@ -29,6 +31,10 @@ struct EmojiArtDocumentView: View {
                 .padding(.horizontal)
                 .scrollIndicators(.hidden)
         }
+        .toolbar {
+            UndoButton()
+        }
+        .environmentObject(paletteStore)
     }
     
     private var zoomGesture: some Gesture {
@@ -87,7 +93,7 @@ struct EmojiArtDocumentView: View {
                 isPresented: $showBackgroundFailureAlert,
                 presenting: document.background.failureReason,
                 actions: { reason in
-                    Button("OK",role: .cancel) { }
+                    Button("OK", role: .cancel) { }
                 },
                 message: { reason in
                     Text(reason)
@@ -135,12 +141,13 @@ struct EmojiArtDocumentView: View {
         for sturldata in sturldata {
             switch sturldata {
                 case .url(let url):
-                    document.setBackground(url)
+                    document.setBackground(url, undoWith: undoManager)
                 case .string(let emoji):
                     document.addEmoji(
                         emoji,
                         at: emojiPosition(at: location, in: geometry),
-                        size: paletteEmojiSize / zoom
+                        size: paletteEmojiSize / zoom,
+                        undoWith: undoManager
                     )
                 default:
                     break

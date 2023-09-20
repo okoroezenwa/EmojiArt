@@ -22,6 +22,7 @@ class PaletteStore: ObservableObject, Identifiable {
         }
     }
     @Published private var _cursorIndex = 0
+    @State private var observer: NSObjectProtocol?
     
     var cursorIndex: Int {
         get { boundsCheckedPaletteIndex(_cursorIndex) }
@@ -36,6 +37,15 @@ class PaletteStore: ObservableObject, Identifiable {
             if palettes.isEmpty {
                 palettes = [Palette(name: "Warning", emojis: "⚠️")]
             }
+        }
+        observer = NotificationCenter.default.addObserver(forName: UserDefaults.didChangeNotification, object: nil, queue: .main) { [weak self] notification in
+            self?.objectWillChange.send()
+        }
+    }
+    
+    deinit {
+        if let observer {
+            NotificationCenter.default.removeObserver(observer)
         }
     }
     
